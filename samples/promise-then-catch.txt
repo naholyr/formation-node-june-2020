@@ -1,0 +1,20 @@
+P1 Promise<value>
+
+  fullfilled => .then(function (value) { return v2 })
+  rejected   => .catch(function (err) { return v3 })
+
+
+P2 = P1.then(...)
+
+  P1 fullfilled => P2 fullfilled = v2
+  P1 rejected   => P2 rejected = error
+
+P2 = P1.catch(...)
+
+  P1 fullfilled => P2 fullfilled = v1
+  P1 rejected   => P2 fullfilled = v3
+
+P2 = P1.then(...).catch(...)
+
+  P1 fullfilled => P1.then(...) fullfilled = v2 => P2 fullfilled = v2
+  P1 rejected   => P1.then(...) reject          => P2 fullfilled = v3
