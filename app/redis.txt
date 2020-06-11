@@ -1,0 +1,27 @@
+Liste des mots valides:
+[ string ]
+- set all           SADD [$word...]
+- check exists      SISMEMBER valid_words $word
+
+Liste des mots devinable:
+[ string ]
+- set all                 SADD [$word...]
+- extract one (random)    SRANDMEMBER guessable_words
+                          SREM guessable_words $word
+                          SADD guessed_words $word
+
+Scores:
+[ { username, score } ]
+- get all   HGETALL scores    =>  { toto: 4, tata: 578 }
+- incr one  HINCRBY scores $username $diff
+
+Mot en cours de trouvage:
+string "citron"
+- get       GET word
+- set       SET word $word
+
+Essais:
+[ { author: string, word: string, date: int } ]
+- get all           LRANGE trials 0 -1
+- add               RPUSH trials $json
+- delete all        DEL trials

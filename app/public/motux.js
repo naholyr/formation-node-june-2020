@@ -1,12 +1,52 @@
-const logIn = (username, callback) => {
-  // TODO log in to server
-  setTimeout(() => {
-    callback(null); // OK
-  }, 500);
+/* globals $:readonly, _:readonly, io:readonly */
+
+const socket = io.connect();
+
+socket.on("coucou", () => {
+  console.warn("coucou");
+});
+
+socket.emit("fibo", 30);
+socket.on("fibo-result", (result) => {
+  console.log({ result });
+});
+
+socket.emit("fibo2", 30, (result) => {
+  console.log("fibo2", result);
+});
+
+// On submit login form
+const logIn = async (username) => {
+  try {
+    const result = await $.post("/login", { username });
+    localStorage.setItem("token", result.token);
+  } catch (err) {
+    alert("Login invalide");
+    throw new Error("LoginFailed");
+  }
 };
 
-// TODO get state from server
+// Auto-login on load
+const token = localStorage.getItem("token");
+if (token) {
+  $.get("/whoami?token=" + encodeURIComponent(token))
+    .then(({ username }) => {
+      updateUI({ username, form: false });
+    })
+    .catch((err) => {
+      localStorage.removeItem("token");
+      console.error("Invalid Token", err.message);
+      updateUI({ username: null, form: true });
+    });
+} else {
+  $(() => {
+    updateUI({ form: true });
+  });
+}
+
 $(() => {
+  /*
+  // TODO get state from server
   // Update auth status first
   updateUI({ username: "naholyr" });
   // Then update UI
@@ -36,11 +76,13 @@ $(() => {
         ],
       },
     ],
-    scores: [{ id: "1", name: "naholyr", score: 0 }],
+    scores: [{ name: "naholyr", score: 0 }],
   });
+  */
 });
 
 const sendWord = (word) => {
+  /*
   disableInput();
   // TODO send to server, which will respond with "trial" info
   const trial = word.split("").map((letter) => {
@@ -50,12 +92,30 @@ const sendWord = (word) => {
   addTrial({ name: state.username, word: trial });
   // TODO re-enable only once server told so
   setTimeout(enableInput, 5000);
+  */
 };
+
+/*
+// TODO receive "trial" from server (other player)
+setTimeout(() => {
+  addTrial({
+    name: "John",
+    word: [
+      ["c", 0],
+      ["o", 1],
+      ["u", 2],
+      ["c", 0],
+      ["o", 0],
+      ["u", 1],
+    ],
+  });
+}, 5000);
 
 // TODO receive "new game" from server
 setTimeout(() => {
   newGame(6, [{ id: "1", name: "naholyr", score: 6 }]);
 }, 15000);
+*/
 
 /**
  * INTERNAL IMPLEMENTATION
@@ -63,6 +123,7 @@ setTimeout(() => {
 
 let state = {
   /*
+  form: boolean?
   username: string?
   wordLength: number
   trials: [
@@ -73,7 +134,6 @@ let state = {
   ]
   scores: [
     {
-      id: string,
       name: string
       score: number
     }
@@ -86,8 +146,13 @@ let state = {
 const tplScore = _.template($("#tpl-score").text());
 const tplTrial = _.template($("#tpl-trial").text());
 const LETTER_STATUS_CLASS = ["incorrect", "misplaced", "correct"];
-const updateUI = ({ username, trials, scores, wordLength }) => {
+const updateUI = ({ username, trials, scores, wordLength, form }) => {
   const updates = {};
+  // Login form
+  if (form !== undefined && state.form !== form) {
+    updates.form = form;
+    $("#login").toggle(!!form);
+  }
   // Authentication status
   if (username !== undefined && state.username !== username) {
     updates.username = username;
@@ -122,9 +187,8 @@ const updateUI = ({ username, trials, scores, wordLength }) => {
   // Scores
   if (scores !== undefined && state.scores !== scores) {
     updates.scores = scores;
-    const html = _.map(scores, ({ id, name, score }) =>
+    const html = _.map(scores, ({ name, score }) =>
       tplScore({
-        userId: id,
         userName: name,
         isMyself: name === state.username,
         score,
@@ -138,16 +202,16 @@ const updateUI = ({ username, trials, scores, wordLength }) => {
 
 // login
 
-$("#login").on("submit", (e) => {
+$("#login").on("submit", async (e) => {
   e.preventDefault();
   const username = e.currentTarget.elements.username.value;
   $("#login button, #login input").attr("disabled", true);
-  logIn(username, (err) => {
+  try {
+    await logIn(username);
+    updateUI({ username });
+  } catch (err) {
     $("#login button, #login input").removeAttr("disabled");
-    if (!err) {
-      updateUI({ username });
-    }
-  });
+  }
 });
 
 // add trial
