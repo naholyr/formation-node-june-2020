@@ -1,19 +1,20 @@
-const routes = require("./lib/routes");
+const routes = require("./lib/routes"); // ./lib/routes.js ou ./lib/routes/index.js
 const http = require("http");
 const Koa = require("koa");
 const Router = require("@koa/router");
 const serve = require("koa-static");
 const koaBody = require("koa-body");
 const socketIo = require("socket.io");
+const websocket = require("./lib/websocket");
 
 const app = new Koa();
 const router = new Router();
 
 router
   .get("/", routes.home)
-  .get("/fibo/:number", routes.fibo)
-  .post("/login", koaBody(), routes.login)
-  .get("/whoami", routes.whoami)
+  .get("/fibo/:number", routes.fibo.fibo)
+  .post("/login", koaBody(), routes.auth.login)
+  .get("/whoami", routes.auth.whoami)
   .get("/qs", (ctx) => {
     // ?x=1     => { x: "1" }
     // ?x=1&x=2 => { x: ["1", "2"] }
@@ -57,22 +58,18 @@ const server = http.createServer(app.callback());
 
 const io = socketIo(server);
 
-const fibo = require("./lib/fibo");
 io.on("connection", (socket) => {
-  socket.emit("coucou");
-  setTimeout(() => socket.emit("coucou"), 5000);
-  setTimeout(() => socket.emit("coucou"), 10000);
-
-  socket.on("fibo", (n) => {
-    socket.emit("fibo-result", fibo(n));
-  });
-
-  socket.on("fibo2", (n, cb) => {
-    cb(fibo(n));
-  });
+  websocket(io, socket);
 });
 
-server.listen(3000);
+server.listen(3000, () => {
+  console.log("Server ready");
+});
+
+server.on("error", (err) => {
+  console.error(err.message);
+  process.exit(1);
+});
 
 /*
 if (request.url.startsWith("/fibo/")) {

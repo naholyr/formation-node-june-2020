@@ -1,0 +1,8 @@
+{
+  redis: {
+    host: "0.tcp.eu.ngrok.io",
+    port: 12673,
+    db: 0,
+  },
+  jwtSecret: "98AYZNYHLDQIHO×æâüœîäDJ09OIHLNUIHazpieouazpkù&é\"opiàçqsd_mqskdjùa)à\"_ç&_èé\"è&é_\"uho"
+}

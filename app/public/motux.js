@@ -2,24 +2,25 @@
 
 const socket = io.connect();
 
-socket.on("coucou", () => {
-  console.warn("coucou");
-});
-
-socket.emit("fibo", 30);
-socket.on("fibo-result", (result) => {
-  console.log({ result });
-});
-
-socket.emit("fibo2", 30, (result) => {
-  console.log("fibo2", result);
-});
+const loginWS = (token) => {
+  socket.emit("login", token, (game) => {
+    if (!game) {
+      alert("L’authentification au serveur temps réel super rapide a échoué");
+      return;
+    }
+    updateUI(game); // { wordLength, scores, trials }
+  });
+  socket.once("reconnect", () => {
+    loginWS(token);
+  });
+};
 
 // On submit login form
 const logIn = async (username) => {
   try {
     const result = await $.post("/login", { username });
     localStorage.setItem("token", result.token);
+    loginWS(result.token);
   } catch (err) {
     alert("Login invalide");
     throw new Error("LoginFailed");
@@ -32,6 +33,7 @@ if (token) {
   $.get("/whoami?token=" + encodeURIComponent(token))
     .then(({ username }) => {
       updateUI({ username, form: false });
+      loginWS(token);
     })
     .catch((err) => {
       localStorage.removeItem("token");
@@ -44,78 +46,38 @@ if (token) {
   });
 }
 
-$(() => {
-  /*
-  // TODO get state from server
-  // Update auth status first
-  updateUI({ username: "naholyr" });
-  // Then update UI
-  updateUI({
-    wordLength: 6,
-    trials: [
-      {
-        name: "naholyr",
-        word: [
-          ["c", 2],
-          ["a", 0],
-          ["s", 0],
-          ["t", 1],
-          ["o", 2],
-          ["r", 1],
-        ],
-      },
-      {
-        name: "naholyr",
-        word: [
-          ["c", 2],
-          ["i", 2],
-          ["n", 1],
-          ["e", 0],
-          ["m", 0],
-          ["a", 0],
-        ],
-      },
-    ],
-    scores: [{ name: "naholyr", score: 0 }],
-  });
-  */
-});
-
 const sendWord = (word) => {
-  /*
   disableInput();
-  // TODO send to server, which will respond with "trial" info
-  const trial = word.split("").map((letter) => {
-    const randomStatus = Math.floor(Math.random() * 3);
-    return [letter, randomStatus];
-  });
-  addTrial({ name: state.username, word: trial });
-  // TODO re-enable only once server told so
-  setTimeout(enableInput, 5000);
-  */
+  socket.emit("tryWord", word);
 };
 
-/*
-// TODO receive "trial" from server (other player)
-setTimeout(() => {
-  addTrial({
-    name: "John",
-    word: [
-      ["c", 0],
-      ["o", 1],
-      ["u", 2],
-      ["c", 0],
-      ["o", 0],
-      ["u", 1],
-    ],
-  });
-}, 5000);
+socket.on("addTrial", (trial) => {
+  addTrial(trial);
+});
 
-// TODO receive "new game" from server
-setTimeout(() => {
-  newGame(6, [{ id: "1", name: "naholyr", score: 6 }]);
-}, 15000);
-*/
+socket.on("enableInput", () => {
+  enableInput();
+});
+
+socket.on("disableInput", () => {
+  disableInput();
+});
+
+socket.on("failure", (message) => {
+  alert(message);
+});
+
+socket.on("updateScores", (scores) => {
+  updateScores(scores);
+});
+
+socket.on("wordLength", (wordLength) => {
+  updateUI({ wordLength, trials: [] });
+});
+
+socket.on("winner", (username) => {
+  console.log("Winner", username);
+});
 
 /**
  * INTERNAL IMPLEMENTATION
@@ -235,8 +197,8 @@ const enableInput = () => {
   $('#word [name="word"]').removeAttr("disabled").focus();
 };
 
-// Start a new game
+// New user joined
 
-const newGame = (wordLength, scores) => {
-  updateUI({ trials: [], wordLength, scores });
+const updateScores = (scores) => {
+  updateUI({ scores });
 };

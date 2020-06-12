@@ -2,11 +2,14 @@
 
 const Redis = require("ioredis");
 const _ = require("lodash");
+const config = require("config");
 
 const client = new Redis({
-  host: "0.tcp.eu.ngrok.io",
-  port: 12673,
+  host: config.redis.host,
+  port: config.redis.port,
+  db: config.redis.db,
 });
+
 exports.client = client; // expose client for tests and closing connection
 
 const formatWord = (word) => _.deburr(word).toUpperCase();
@@ -35,7 +38,7 @@ exports.pickNewWord = async () => {
   if (!word) {
     // No more words available: restore guessed words and start over
     const result = await client
-      .pipeline()
+      .pipeline() // MULTI?
       .sunionstore("guessable_words", "guessable_words", "guessed_words")
       .del("guessed_words")
       .srandmember("guessable_words")
@@ -49,36 +52,67 @@ exports.pickNewWord = async () => {
   }
 
   await client
-    .pipeline()
+    .pipeline() // MULTI?
     .srem("guessable_words", word) // Don't guess this one again later
     .sadd("guessed_words", word) // Add to other list
     .set("current_word", word) // Store as current word
     .del("trials") // Clear trials
     .exec();
 
-  return length;
+  return word.length;
 };
 
+/**
+ * Output: Array<{ name: string, score: number }>
+ */
 exports.getScores = async () => {
-  // HGETALL scores
-  // sort
+  const scores = await client.hgetall("scores"); // Object<[username: string]: (points: number)>
+  // { toto: "6", tata: "30" }
+  // => [ { name: ..., score: ... }, ... ]
+  // => sort
+  /*
+  _.chain(scores)
+    .map((v, k) => {
+      return { name: k, score: Number(v) };
+    })
+    .orderBy(["score", "name"], ["desc", "asc"])
+    .value();
+  */
+  const scoresArray = _.map(scores, (v, k) => {
+    return { name: k, score: Number(v) };
+  });
+  // FIXME: perf issues? Use .sort()?
+  return _.orderBy(scoresArray, ["score", "name"], ["desc", "asc"]);
 };
 
+/**
+ * Output: new score
+ */
 exports.addScore = async (username, points) => {
-  // HINCRBY scores $username $points
+  return client.hincrby("scores", username, points);
 };
 
 /**
  * Input: string word
  * Output: Trial
- * Trial :: Array<[ char, status: 0|1|2 ]>
+ * Trial :: { name, word: Array<[ char, status: 0|1|2 ]> }
  */
-exports.checkWord = async (word) => {
-  // TODO Redis: GET current_word
-  const currentWord = "USINE";
+exports.tryWord = async (username, word, checkValid = true) => {
+  const currentWord = await client.get("current_word");
+
+  word = formatWord(word);
+
+  let win = word === currentWord;
 
   if (word.length !== currentWord.length) {
     throw new Error("INVALID_WORD_LENGTH");
+  }
+
+  if (checkValid) {
+    const isValid = await exports.isValidWord(word);
+    if (!isValid) {
+      throw new Error("INVALID_WORD");
+    }
   }
 
   const trial = word.split("").map((letter, index) => {
@@ -91,19 +125,48 @@ exports.checkWord = async (word) => {
     }
   });
 
-  // TODO Redis: RPUSH trials $trial
-
-  return trial;
-};
-
-exports.getTrials = async () => {
-  // LRANGE trials 0 -1
-};
-
-exports.getCurrentGame = async () => {
-  return {
-    trials: [], // TODO getTrials
-    scores: [], // TODO getScores
-    wordLength: 0, // TODO getCurrentWord
+  const result = {
+    name: username,
+    word: trial,
+    win,
   };
+
+  await client.rpush("trials", JSON.stringify(result));
+
+  return result;
+};
+
+/**
+ * Output: Array<Trial>
+ * Trial :: Array<{ name, word: [ char, status: 0|1|2 ] }>
+ */
+exports.getTrials = async () => {
+  const trials = await client.lrange("trials", 0, -1); // Array<string>
+  return trials.map((v) => JSON.parse(v));
+};
+
+/**
+ * Output: {
+ *    trials: Array<Trial>
+ *    scores: Array<{ name, score }>
+ *    wordLength: number
+ * }
+ */
+exports.getCurrentGame = async () => {
+  /*
+  const resultPs = [
+    exports.getTrials(),
+    exports.getScores(),
+    client.strlen("current_word"),
+  ];
+  const resultsP = Promise.all(resultPs);
+  const results = await resultsP;
+  const [trials, scores, wordLength] = results; // const trials = results[0]; ...
+  */
+  const [trials, scores, wordLength] = await Promise.all([
+    exports.getTrials(), // trials
+    exports.getScores(), // scores
+    client.strlen("current_word"), // wordLength
+  ]);
+  return { trials, scores, wordLength };
 };
