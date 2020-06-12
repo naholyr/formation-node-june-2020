@@ -46,7 +46,7 @@ module.exports = (io, socket) => {
     timeout = setTimeout(() => {
       socket.emit("enableInput");
       timeout = null;
-    }, 5000);
+    }, config.delayBetweenWords);
 
     try {
       // Input: username, word
@@ -68,7 +68,7 @@ module.exports = (io, socket) => {
           const wordLength = await gameEngine.pickNewWord();
           io.emit("wordLength", wordLength);
           io.emit("enableInput"); // FIXME disabled for everyone (state)
-        }, 30000);
+        }, config.delayBetweenGames);
       }
     } catch (err) {
       socket.emit("failure", err.message);
