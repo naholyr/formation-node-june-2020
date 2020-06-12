@@ -153,20 +153,17 @@ exports.getTrials = async () => {
  * }
  */
 exports.getCurrentGame = async () => {
-  /*
-  const resultPs = [
-    exports.getTrials(),
-    exports.getScores(),
-    client.strlen("current_word"),
-  ];
-  const resultsP = Promise.all(resultPs);
-  const results = await resultsP;
-  const [trials, scores, wordLength] = results; // const trials = results[0]; ...
-  */
-  const [trials, scores, wordLength] = await Promise.all([
+  const currentWordLength = await client.strlen("current_word");
+  if (!currentWordLength) {
+    const [scores, wordLength] = await Promise.all([
+      exports.getScores(),
+      exports.pickNewWord(),
+    ]);
+    return { trials: [], scores, wordLength };
+  }
+  const [trials, scores] = await Promise.all([
     exports.getTrials(), // trials
     exports.getScores(), // scores
-    client.strlen("current_word"), // wordLength
   ]);
-  return { trials, scores, wordLength };
+  return { trials, scores, wordLength: currentWordLength };
 };

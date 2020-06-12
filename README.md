@@ -26,6 +26,7 @@ Pré-requis :
 
 * Installation des dépendances : `npm install`
 * Initialisation des données : `node bin/init-data`
+  * Taille de la DB Redis après initialisation : ~19Mib
 * Démarrage du serveur :
   * Mode prod : `npm start`
   * Mode dev : `npm run watch`
