@@ -4,7 +4,7 @@ const {
   initValidWords,
   initGuessableWords,
   client,
-} = require("../game-engine");
+} = require("../lib/game-engine");
 
 const main = async () => {
   console.log("Injecting valid words...");

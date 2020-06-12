@@ -52,7 +52,7 @@ module.exports = (io, socket) => {
       // Input: username, word
       // Output: Trial :: { name, word }
       const { username } = jwt.verify(socketToken, config.jwtSecret);
-      const trial = await gameEngine.tryWord(username, word, false);
+      const trial = await gameEngine.tryWord(username, word, true);
       // emit trial (to everyone)
       io.emit("addTrial", trial);
       if (trial.win) {

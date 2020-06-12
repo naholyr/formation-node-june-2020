@@ -25,6 +25,7 @@ Pré-requis :
 #### Démarrage
 
 * Installation des dépendances : `npm install`
+* Initialisation des données : `node bin/init-data`
 * Démarrage du serveur :
   * Mode prod : `npm start`
   * Mode dev : `npm run watch`
@@ -32,7 +33,7 @@ Pré-requis :
 
 #### Idées d'évolution
 
-* Trouver une vraie liste de mots valides de la langue française, ou une API permettant de faire le test
+* ~~Trouver une vraie liste de mots valides de la langue française, ou une API permettant de faire le test~~ (merci [Christophe Pallier](http://www.pallier.org/liste-de-mots-francais.html))
 * Afficher un compte à rebours lorsque l'input est *disabled* côté front (ce qui permet de réfléchir à toutes les problématiques de synchronisation client/serveur, prise en compte du lag, tolérance, etc…)
 * Implémenter une authentification par mot de passe, ou ‑ plus fort ‑ en utilisant un service tiers oauth (github par exemple) avec par exemple [Passport.js](http://www.passportjs.org/) (avec *`{session:false}`*, cf. la doc)
 * La grosse évol : permettre d'héberger plusieurs parties en simultané
