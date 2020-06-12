@@ -1,4 +1,4 @@
-const routes = require("./routes");
+const routes = require("./lib/routes");
 const http = require("http");
 const Koa = require("koa");
 const Router = require("@koa/router");
@@ -57,7 +57,7 @@ const server = http.createServer(app.callback());
 
 const io = socketIo(server);
 
-const fibo = require("./fibo");
+const fibo = require("./lib/fibo");
 io.on("connection", (socket) => {
   socket.emit("coucou");
   setTimeout(() => socket.emit("coucou"), 5000);
