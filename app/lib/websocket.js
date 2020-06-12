@@ -68,7 +68,7 @@ module.exports = (io, socket) => {
           const wordLength = await gameEngine.pickNewWord();
           io.emit("wordLength", wordLength);
           io.emit("enableInput"); // FIXME disabled for everyone (state)
-        }, 5000);
+        }, 30000);
       }
     } catch (err) {
       socket.emit("failure", err.message);

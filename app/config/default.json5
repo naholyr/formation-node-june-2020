@@ -1,8 +1,12 @@
 {
+  port: 3000,
+  cluster: {
+    count: 4,
+  },
   redis: {
-    host: "0.tcp.eu.ngrok.io",
-    port: 12673,
+    host: "localhost",
+    port: 6379,
     db: 0,
   },
-  jwtSecret: "98AYZNYHLDQIHO×æâüœîäDJ09OIHLNUIHazpieouazpkù&é\"opiàçqsd_mqskdjùa)à\"_ç&_èé\"è&é_\"uho"
+  jwtSecret: "98AYZNYHLDQIHO×æâüœîäDJ09OIHLNUIHazpieouazpkù&é\"opiàçqsd_mqskdjùa)à\"_ç&_èé\"è&é_\"uho",
 }

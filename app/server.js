@@ -1,3 +1,6 @@
+"use strict";
+
+const config = require("config");
 const routes = require("./lib/routes"); // ./lib/routes.js ou ./lib/routes/index.js
 const http = require("http");
 const Koa = require("koa");
@@ -5,7 +8,9 @@ const Router = require("@koa/router");
 const serve = require("koa-static");
 const koaBody = require("koa-body");
 const socketIo = require("socket.io");
+const socketIoRedisAdapter = require("socket.io-redis");
 const websocket = require("./lib/websocket");
+const chalk = require("chalk");
 
 const app = new Koa();
 const router = new Router();
@@ -58,18 +63,29 @@ const server = http.createServer(app.callback());
 
 const io = socketIo(server);
 
+// Cluster-friendly
+io.adapter(socketIoRedisAdapter(config.redis));
+
 io.on("connection", (socket) => {
   websocket(io, socket);
-});
-
-server.listen(3000, () => {
-  console.log("Server ready");
 });
 
 server.on("error", (err) => {
   console.error(err.message);
   process.exit(1);
 });
+
+if (module.parent) {
+  // required: export server, don't start it immediately
+  module.exports = server;
+} else {
+  // executed: start immediately
+  server.listen(config.port, () => {
+    console.log(
+      chalk.bold.cyan("Server ready http://localhost:" + config.port)
+    );
+  });
+}
 
 /*
 if (request.url.startsWith("/fibo/")) {
